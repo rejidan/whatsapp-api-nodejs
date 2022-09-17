@@ -142,7 +142,7 @@ class WhatsAppInstance {
 
         // sending presence
         sock?.ev.on('presence.update', async (json) => {
-            await this.SendWebhook('presence', json)
+            // await this.SendWebhook('presence', json)
         })
 
         // on receive all chats
@@ -260,8 +260,11 @@ class WhatsAppInstance {
         })
 
         sock?.ev.on('messages.update', async (messages) => {
-            //console.log('messages.update')
-            //console.dir(messages);
+            const msg = messages[0];
+
+            await this.SendWebhook('message', {
+                message: msg,
+            })
         })
         sock?.ws.on('CB:call', async (data) => {
             if (data.content) {
