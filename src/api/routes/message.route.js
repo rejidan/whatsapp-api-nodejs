@@ -1,12 +1,16 @@
 const express = require('express')
 const controller = require('../controllers/message.controller')
+const controller_chatwoot = require('../controllers/chatwoot.controller');
 const keyVerify = require('../middlewares/keyCheck')
 const loginVerify = require('../middlewares/loginCheck')
 const multer = require('multer')
 
 const router = express.Router()
 const storage = multer.memoryStorage()
-const upload = multer({ storage: storage, inMemory: true }).single('file')
+const upload = multer({
+    storage: storage,
+    inMemory: true
+}).single('file')
 
 router.route('/text').post(keyVerify, loginVerify, controller.Text)
 router.route('/image').post(keyVerify, loginVerify, upload, controller.Image)
@@ -21,5 +25,7 @@ router.route('/setstatus').put(keyVerify, loginVerify, controller.SetStatus)
 router
     .route('/mediabutton')
     .post(keyVerify, loginVerify, controller.MediaButton)
+
+router.route('/chatwoot').post(keyVerify, loginVerify, controller_chatwoot.Chat)
 
 module.exports = router
