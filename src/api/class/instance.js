@@ -262,6 +262,8 @@ class WhatsAppInstance {
         sock?.ev.on('messages.update', async (messages) => {
             const msg = messages[0];
 
+            if (msg.key.remoteJid == "status@broadcast") return false;
+
             await this.SendWebhook('message', {
                 message: msg,
             })
