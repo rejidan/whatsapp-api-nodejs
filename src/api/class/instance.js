@@ -16,6 +16,7 @@ const config = require('../../config/config')
 const downloadMessage = require('../helper/downloadMsg')
 const logger = require('pino')()
 const useMongoDBAuthState = require('../helper/mongoAuthState')
+const chatwootMsg = require('../helper/chatwootMsg')
 
 class WhatsAppInstance {
     socketConfig = {
@@ -60,12 +61,20 @@ class WhatsAppInstance {
 
     async SendWebhook(type, body) {
         if (!this.allowWebhook) return
-        this.axiosInstance
+        let url = this.instance.customWebhook;
+        console.log(body);
+        if ((url.match(/\/app\/accounts\//g)) && type == 'message') {
+            await chatwootMsg(url, body)
+        } else {
+            this.axiosInstance
             .post('', {
                 type,
                 body,
             })
             .catch(() => {})
+
+        }
+        // let body = message
     }
 
     async init() {
@@ -262,7 +271,8 @@ class WhatsAppInstance {
         sock?.ev.on('messages.update', async (messages) => {
             const msg = messages[0];
 
-            if (msg.key.remoteJid == "status@broadcast") return false;
+            if (msg.key.remoteJid == "status@broadcast" || msg.key.fromMe) return false;
+            console.log(msg);
 
             await this.SendWebhook('message', {
                 message: msg,
