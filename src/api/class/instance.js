@@ -62,9 +62,13 @@ class WhatsAppInstance {
     async SendWebhook(type, body) {
         if (!this.allowWebhook) return
         let url = this.instance.customWebhook;
-        console.log(body);
+        console.log('type: ', type);
         if ((url.match(/\/app\/accounts\//g)) && type == 'message') {
-            await chatwootMsg(url, body)
+            await chatwootMsg(url, body, type)
+        // } else if ((url.match(/\/app\/accounts\//g)) && (type == 'imageMessage' || type == 'videoMessage')) {
+            // if ((url.match(/\/app\/accounts\//g)) && (type == 'imageMessage' || type == 'videoMessage' || type == 'message')) {
+
+        //     await chatwootMsg(url, body)
         } else {
             this.axiosInstance
             .post('', {

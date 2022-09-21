@@ -2,6 +2,20 @@
 let BASE_URL = 'http://';
 let BASE_TOKEN = '';
 const fetch = require('node-fetch')
+const FormData = require('form-data');
+const mime = require('mime-types')
+
+const b64toBlob = async (data) => {
+    
+  // const message = data.message;
+
+  // const Content = message?.imageMessage ?? message?.videoMessage;
+  // var url = `data:${Content.mimetype};base64,${data.msgContent}`;
+  
+  // const buffer = Buffer.from(data.msgContent, 'base64').toString('utf8');
+  // return new Blob([buffer], {type: Content.mimetype});
+  // return Buffer.from(data.msgContent, 'base64');
+}
 
 const createContact = async (req) => {
   const phone = req.key.remoteJid.replace("@s.whatsapp.net", "")
@@ -81,7 +95,37 @@ const sendMessage = async (text, conversationId) => {
   return data;
 }
 
-module.exports = async function chatwootMsg(url, data) {
+const sendFile = async (text, conversationId, data) => {
+
+  const Content = data.message?.imageMessage ?? data.message?.videoMessage;
+
+  let formData = new FormData();
+  
+  let image = await b64toBlob(data);
+
+  // fs.writeFileSync("new-path.jpg", image);
+  // console.log(data);
+
+  formData.append('attachments[]', Buffer.from(data.msgContent, 'base64'), { 
+    contentType: Content.mimetype,
+    filename: data.key.id + "." + mime.extension(Content.mimetype)
+  });
+  formData.append('message_type', 'incoming');
+  formData.append('private', "false");
+  formData.append('content', Content.caption);
+
+  const response = await fetch(`${BASE_URL}/conversations/${conversationId}/messages`, {
+    method: "POST",
+    headers: {
+      "api-access-token": BASE_TOKEN,
+    },
+    body: formData
+  });
+
+  return await response;
+}
+
+module.exports = async function chatwootMsg(url, data, type) {
   const domain = (new URL(url));
   const url_data = url.match(/\/app\/accounts\/(\d+)\/inbox\/(\d+)/);
   const accountId = url_data[1];
@@ -101,7 +145,11 @@ module.exports = async function chatwootMsg(url, data) {
   const conversation = await getConversation(contactReg)
   const conversationReg = (conversation) ? conversation.id : await createConversation(contactReg, inboxId).id;
 
-  sendMessage(data.message.conversation, conversationReg)
+  if (data.message?.imageMessage || data.message?.videoMessage) {
+    sendFile(data.message.conversation, conversationReg, data)    
+  } else {
+    sendMessage(data.message.conversation, conversationReg)
+  }
 
   return {
     'content': data.message.conversation,
