@@ -13,11 +13,11 @@ const createContact = async (req) => {
       "Content-Type": "application/json",
       "api-access-token": BASE_TOKEN,
     },
-    body: {
+    body: JSON.stringify({
       'identifier': phone,
-      'name': req.pushNamer,
-      'phone_number': phone,
-    }
+      'name': req.pushName,
+      'phone_number': "+" + phone,
+    })
   });
   const res = await response.json();
 
@@ -46,23 +46,29 @@ const getConversation = async (contactId) => {
     },
   });
   const res = await response.json();
-
-  return res.payload[0];
+  try {
+    return res?.payload[0];
+  } catch (error) {
+    return false;
+  }
+  
 }
 
 const createConversation = async (contactId, inboxId) => {
-  const response = await fetch(`${BASE_URL}/conversations/${inboxId}/messages`, {
+  const response = await fetch(`${BASE_URL}/conversations`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "api-access-token": BASE_TOKEN,
     },
-    body: {
+    body: JSON.stringify({
       'contact_id': contactId,
       'inbox_id': inboxId,
-    }
+    })
   });
   const data = await response.json();
+
+
   return data;
 }
 
@@ -122,12 +128,17 @@ module.exports = async function chatwootMsg(url, data, type) {
   BASE_URL = `${config.host}/api/v1/accounts/${accountId}`;
   BASE_TOKEN = domain.searchParams.get('key');
 
+
+  if (data?.update || data?.message?.update  || data.key.fromMe) return { error: null } ;
+
+  console.log(data.message?.viewOnceMessage?.message);
+
   const numberId = data.key.remoteJid.replace("@s.whatsapp.net", "").replace(" ","");
 
   const contact = await searchContact(numberId)
-  const contactReg = (contact) ? contact.id : await createContact(data).id
+  const contactReg = (contact) ? contact.id : (await createContact(data)).id
   const conversation = await getConversation(contactReg)
-  const conversationReg = (conversation) ? conversation.id : await createConversation(contactReg, inboxId).id;
+  const conversationReg = (conversation) ? conversation.id : (await createConversation(contactReg, inboxId)).id;
 
   if (data.message?.imageMessage || data.message?.videoMessage || data.message?.documentMessage || data.message?.AudioMessage ) {
     sendFile(data.message.conversation, conversationReg, data)    
