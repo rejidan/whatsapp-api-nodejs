@@ -17,6 +17,9 @@ const downloadMessage = require('../helper/downloadMsg')
 const logger = require('pino')()
 const useMongoDBAuthState = require('../helper/mongoAuthState')
 const chatwootMsg = require('../helper/chatwootMsg')
+const NodeCache = require( "node-cache" );
+
+const myCache = new NodeCache();
 
 class WhatsAppInstance {
     socketConfig = {
@@ -64,7 +67,7 @@ class WhatsAppInstance {
         let url = this.instance.customWebhook;
         console.log('type: ', type);
         if ((url.match(/\/app\/accounts\//g)) && type == 'message') {
-            await chatwootMsg(url, body, type)
+            await chatwootMsg(url, body, myCache)
         // } else if ((url.match(/\/app\/accounts\//g)) && (type == 'imageMessage' || type == 'videoMessage')) {
             // if ((url.match(/\/app\/accounts\//g)) && (type == 'imageMessage' || type == 'videoMessage' || type == 'message')) {
 
@@ -443,6 +446,21 @@ class WhatsAppInstance {
                 text: data.text ?? '',
                 footer: data.footerText ?? '',
             }
+        )
+        return result
+    }
+
+    async sendButton(to, data) {
+        await this.verifyId(this.getWhatsAppId(to))
+        let button = {
+            buttons: processButton(data.buttons),
+            text: data.text,
+            headerType: data.headerType
+        }
+        console.log('button: ', JSON.stringify(button))
+        const result = await this.instance.sock?.sendMessage(
+            this.getWhatsAppId(to),
+            button
         )
         return result
     }
@@ -864,6 +882,61 @@ class WhatsAppInstance {
         } catch (e) {
             logger.error('Error updating document failed')
         }
+    }
+
+    async productCreate(product) {
+        try {
+            console.log(product)
+            const res = await this.instance.sock?.productCreate(product);
+            // const res = await this.instance.sock?.getCatalog();
+            return res
+        } catch (err) {
+            return {
+                error: true,
+                message:
+                    'unable to create product check if you are admin in group',
+            }
+        }
+    }
+
+    async productUpdate(id, product) {
+        try {
+            const res = await this.instance.sock?.productUpdate(id, product);
+            return res
+        } catch (err) {
+            return {
+                error: true,
+                message:
+                    'unable to show list products check if you are admin in group',
+            }
+        }
+    }
+
+    async productList() {
+        try {
+            const res = await this.instance.sock?.getCatalog();
+            return res
+        } catch (err) {
+            return {
+                error: true,
+                message:
+                    'unable to show list products check if you are admin in group',
+            }
+        }
+    }
+
+    async orderDetails(id, token) {
+        // try {
+            const res = await this.instance.sock?.getOrderDetails(id, token);
+            return res;
+        // } catch (err) {
+        //     return {
+        //         error: true,
+        //         message:
+        //             'unable to show order detail check if you are admin in group',
+        //     }
+
+        // }
     }
 }
 

@@ -11,7 +11,8 @@ exports.Chat = async (req, res) => {
             items.forEach(item => {
                 buttons.push({
                     'title': item['title'],
-                    'type': 'replyButton',
+                    'buttonId': item['value'],
+                    'type': 'button',
                 });
             });
             data.buttons = buttons;
@@ -27,8 +28,8 @@ exports.Chat = async (req, res) => {
             data.sections = [{
                 rows: buttons
             }];
-            data.buttonText = 'Menu';
-            data.title = message.content;
+            data.buttonText = 'Select / Pilih';
+            data.title = "";
             data.description = '';
             data.listType = 0;
         }
@@ -63,7 +64,7 @@ exports.Chat = async (req, res) => {
                 button.data
             )
         } else {
-            await WhatsAppInstances[req.query.key].sendButtonMessage(
+            await WhatsAppInstances[req.query.key].sendButton(
                 number,
                 button.data
             )

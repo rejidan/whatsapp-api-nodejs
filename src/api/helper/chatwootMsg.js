@@ -64,6 +64,7 @@ const createConversation = async (contactId, inboxId) => {
     body: JSON.stringify({
       'contact_id': contactId,
       'inbox_id': inboxId,
+      'status': 'pending'
     })
   });
   const data = await response.json();
@@ -72,8 +73,9 @@ const createConversation = async (contactId, inboxId) => {
   return data;
 }
 
-const sendMessage = async (text, conversationId) => {
+const sendMessage = async (text, conversationId, additional_attributes) => {
   const response = await fetch(`${BASE_URL}/conversations/${conversationId}/messages`, {
+  // const response = await fetch('https://webhook.site/4cfb455c-1989-44bf-8822-9b143a897935', {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -82,11 +84,12 @@ const sendMessage = async (text, conversationId) => {
     body: JSON.stringify({
       'content': text,
       'message_type': 0,
-      'private': false
+      'private': false,
+      'additional_attributes' : additional_attributes
     })
   });
-  const data = await response.json();
-  return data;
+  // const data = await response.json();
+  // return data;
 }
 
 const sendFile = async (text, conversationId, data) => {
@@ -115,7 +118,7 @@ const sendFile = async (text, conversationId, data) => {
   return await response;
 }
 
-module.exports = async function chatwootMsg(url, data, type) {
+module.exports = async function chatwootMsg(url, data, myCache) {
   const domain = (new URL(url));
   const url_data = url.match(/\/app\/accounts\/(\d+)\/inbox\/(\d+)/);
   const accountId = url_data[1];
@@ -131,19 +134,33 @@ module.exports = async function chatwootMsg(url, data, type) {
 
   if (data?.update || data?.message?.update  || data.key.fromMe) return { error: null } ;
 
-  console.log(data.message?.viewOnceMessage?.message);
-
   const numberId = data.key.remoteJid.replace("@s.whatsapp.net", "").replace(" ","");
 
-  const contact = await searchContact(numberId)
-  const contactReg = (contact) ? contact.id : (await createContact(data)).id
-  const conversation = await getConversation(contactReg)
-  const conversationReg = (conversation) ? conversation.id : (await createConversation(contactReg, inboxId)).id;
+
+  let contactReg, conversationReg;
+  if (!myCache.has(`contact_${numberId}`)) {
+    const contact = await searchContact(numberId)
+    contactReg = (contact) ? contact.id : (await createContact(data)).id
+    myCache.set(`contact_${numberId}`, contactReg)
+  } else contactReg = myCache.get(`contact_${numberId}`)
+
+  if (!myCache.has(`conversation_${numberId}`)) {
+    const conversation = await getConversation(contactReg)
+    conversationReg = (conversation) ? conversation.id : (await createConversation(contactReg, inboxId)).id;
+    myCache.set(`conversation_${numberId}`, conversationReg)
+  } else conversationReg = myCache.get(`conversation_${numberId}`)
 
   if (data.message?.imageMessage || data.message?.videoMessage || data.message?.documentMessage || data.message?.AudioMessage ) {
     sendFile(data.message.conversation, conversationReg, data)    
   } else {
-    sendMessage(data.message.conversation, conversationReg)
+    let content_attributes = { 'masuk' :'mangga'};
+    let message = data.message?.conversation || data.message?.buttonsResponseMessage?.selectedButtonId || data.message?.listResponseMessage?.singleSelectReply.selectedRowId || (data.message?.orderMessage ? 'Order Message' : 'undefined');
+    // jika ada orderan masuk
+    if (message == 'Order Message') {
+      let order = data.message?.orderMessage
+      message = `New Order: ${order.orderId} - ${order.token}`;
+    }
+    sendMessage(message, conversationReg, content_attributes)
   }
 
   return {
