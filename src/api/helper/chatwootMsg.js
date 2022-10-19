@@ -94,28 +94,34 @@ const sendMessage = async (text, conversationId, additional_attributes) => {
 
 const sendFile = async (text, conversationId, data) => {
 
-  const Content = data.message?.imageMessage ?? data.message?.videoMessage ?? data.message?.documentMessage ?? data.message?.AudioMessage;
+  try {
+    const Content = data.message?.imageMessage ?? data.message?.videoMessage ?? data.message?.documentMessage ?? data.message?.AudioMessage;
 
-  let formData = new FormData();
+    let formData = new FormData();
+    
+    formData.append('attachments[]', Buffer.from(data.msgContent, 'base64'), { 
+      contentType: Content.mimetype,
+      filename: data.message?.documentMessage ? Content.title : data.key.id + "." + mime.extension(Content.mimetype)
+    });
+    formData.append('message_type', 'incoming');
+    formData.append('private', "false");
+    formData.append('content', Content.caption);
   
-  formData.append('attachments[]', Buffer.from(data.msgContent, 'base64'), { 
-    contentType: Content.mimetype,
-    filename: data.message?.documentMessage ? Content.title : data.key.id + "." + mime.extension(Content.mimetype)
-  });
-  formData.append('message_type', 'incoming');
-  formData.append('private', "false");
-  formData.append('content', Content.caption);
+    const response = await fetch(`${BASE_URL}/conversations/${conversationId}/messages`, {
+    // const response = await fetch(`https://webhook.site/a24eff67-b955-4291-8861-cca4845378cb`, {
+      method: "POST",
+      headers: {
+        "api-access-token": BASE_TOKEN,
+      },
+      body: formData
+    });
+  
+    return await response;
+  } catch (error) {
+    console.error(error);
+    console.log('Tidak bisa kirim file');
+  }
 
-  const response = await fetch(`${BASE_URL}/conversations/${conversationId}/messages`, {
-  // const response = await fetch(`https://webhook.site/a24eff67-b955-4291-8861-cca4845378cb`, {
-    method: "POST",
-    headers: {
-      "api-access-token": BASE_TOKEN,
-    },
-    body: formData
-  });
-
-  return await response;
 }
 
 module.exports = async function chatwootMsg(url, data, myCache) {
