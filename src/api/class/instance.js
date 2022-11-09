@@ -457,7 +457,7 @@ class WhatsAppInstance {
             text: data.text,
             headerType: data.headerType
         }
-        console.log('button: ', JSON.stringify(button))
+
         const result = await this.instance.sock?.sendMessage(
             this.getWhatsAppId(to),
             button
