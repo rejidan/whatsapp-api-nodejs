@@ -75,6 +75,7 @@ class WhatsAppInstance {
         } else {
             this.axiosInstance
             .post('', {
+                key: this.key,
                 type,
                 body,
             })
