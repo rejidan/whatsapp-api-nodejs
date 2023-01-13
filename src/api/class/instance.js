@@ -177,8 +177,8 @@ class WhatsAppInstance {
 
         // on recive new chat
         sock?.ev.on('chats.upsert', (newChat) => {
-            //console.log('chats.upsert')
-            //console.log(newChat)
+            // console.log('chats.upsert')
+            // console.log(newChat)
             const chats = newChat.map((chat) => {
                 return {
                     ...chat,
@@ -190,8 +190,8 @@ class WhatsAppInstance {
 
         // on chat change
         sock?.ev.on('chats.update', (changedChat) => {
-            //console.log('chats.update')
-            //console.log(changedChat)
+            // console.log('chats.update')
+            // console.log(changedChat)
             changedChat.map((chat) => {
                 const index = this.instance.chats.findIndex(
                     (pc) => pc.id === chat.id
@@ -227,7 +227,7 @@ class WhatsAppInstance {
             this.instance.messages.unshift(...m.messages)
 
             m.messages.map(async (msg) => {
-                if (!msg.message) return
+                if (msg.key.remoteJid == "status@broadcast" || !msg.message) return;
 
                 const messageType = Object.keys(msg.message)[0]
                 if (
@@ -285,7 +285,7 @@ class WhatsAppInstance {
         sock?.ev.on('messages.update', async (messages) => {
             const msg = messages[0];
 
-            if (msg.key.remoteJid == "status@broadcast" || msg.key.fromMe) return false;
+            if (msg.key.remoteJid == "status@broadcast" || !msg.key.fromMe) return false;
             console.log(msg);
 
             await this.SendWebhook('message', {
