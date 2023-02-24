@@ -7,7 +7,7 @@ exports.productUpdate = async (req, res) => {
     return res.status(201).json({ error: false, data: data })
 }
 exports.productList = async (req, res) => {
-    const data = await WhatsAppInstances[req.query.key]?.productList()
+    const data = await WhatsAppInstances[req.query.key]?.productList(req.query.pageCursor)
     return res.status(201).json({ error: false, data: data })
 }
 exports.orderDetails = async (req, res) => {

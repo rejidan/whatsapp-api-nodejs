@@ -913,9 +913,12 @@ class WhatsAppInstance {
         }
     }
 
-    async productList() {
+    async productList(cursor) {
         try {
-            const res = await this.instance.sock?.getCatalog();
+            const res = await this.instance.sock?.getCatalog({
+                limit: 40,
+                cursor: cursor
+            });
             return res
         } catch (err) {
             return {
