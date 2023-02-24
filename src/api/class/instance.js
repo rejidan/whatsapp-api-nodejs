@@ -456,7 +456,8 @@ class WhatsAppInstance {
         let button = {
             buttons: processButton(data.buttons),
             text: data.text,
-            headerType: data.headerType
+            headerType: data.headerType,
+            viewOnce: true
         }
 
         const result = await this.instance.sock?.sendMessage(
@@ -491,6 +492,7 @@ class WhatsAppInstance {
                 buttonText: data.buttonText,
                 footer: data.description,
                 title: data.title,
+                viewOnce: true
             }
         )
         return result
@@ -509,6 +511,7 @@ class WhatsAppInstance {
                 caption: data.text,
                 templateButtons: processButton(data.buttons),
                 mimetype: data.mimeType,
+                viewOnce: true
             }
         )
         return result
