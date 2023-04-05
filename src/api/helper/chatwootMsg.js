@@ -1,13 +1,13 @@
 
 let BASE_URL = 'http://';
 let BASE_TOKEN = '';
+const fetch = require('node-fetch')
 const FormData = require('form-data');
 const mime = require('mime-types')
-const axios = require('axios')
 
 const createContact = async (req) => {
   const phone = req.key.remoteJid.replace("@s.whatsapp.net", "")
-  const response = await axios(`${BASE_URL}/contacts`, {
+  const response = await fetch(`${BASE_URL}/contacts`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -25,7 +25,7 @@ const createContact = async (req) => {
 }
 
 const searchContact = async (contactId) => {
-  const response = await axios(`${BASE_URL}/contacts/search?q=${contactId}&sort=phone_number`, {
+  const response = await fetch(`${BASE_URL}/contacts/search?q=${contactId}&sort=phone_number`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -38,7 +38,7 @@ const searchContact = async (contactId) => {
 }
 
 const getConversation = async (contactId) => {
-  const response = await axios(`${BASE_URL}/contacts/${contactId}/conversations`, {
+  const response = await fetch(`${BASE_URL}/contacts/${contactId}/conversations`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -55,7 +55,7 @@ const getConversation = async (contactId) => {
 }
 
 const createConversation = async (contactId, inboxId) => {
-  const response = await axios(`${BASE_URL}/conversations`, {
+  const response = await fetch(`${BASE_URL}/conversations`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -74,8 +74,8 @@ const createConversation = async (contactId, inboxId) => {
 }
 
 const sendMessage = async (text, conversationId, additional_attributes) => {
-  const response = await axios(`${BASE_URL}/conversations/${conversationId}/messages`, {
-  // const response = await axios('https://webhook.site/4cfb455c-1989-44bf-8822-9b143a897935', {
+  const response = await fetch(`${BASE_URL}/conversations/${conversationId}/messages`, {
+  // const response = await fetch('https://webhook.site/4cfb455c-1989-44bf-8822-9b143a897935', {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -107,8 +107,8 @@ const sendFile = async (text, conversationId, data) => {
     formData.append('private', "false");
     formData.append('content', Content.caption);
   
-    const response = await axios(`${BASE_URL}/conversations/${conversationId}/messages`, {
-    // const response = await axios(`https://webhook.site/a24eff67-b955-4291-8861-cca4845378cb`, {
+    const response = await fetch(`${BASE_URL}/conversations/${conversationId}/messages`, {
+    // const response = await fetch(`https://webhook.site/a24eff67-b955-4291-8861-cca4845378cb`, {
       method: "POST",
       headers: {
         "api-access-token": BASE_TOKEN,
