@@ -6,18 +6,18 @@ exports.Chat = async (req, res) => {
         let type = '';
         let items = message.content_attributes.items;
         data.text = message.content;
-        if (items.length <= 3) {
-            type = 'button';
-            items.forEach(item => {
-                buttons.push({
-                    'title': item['title'],
-                    'buttonId': item['value'],
-                    'type': 'button',
-                });
-            });
-            data.buttons = buttons;
-            data.headerType = 1;
-        } else {
+        // if (items.length <= 3) {
+        //     type = 'button';
+        //     items.forEach(item => {
+        //         buttons.push({
+        //             'title': item['title'],
+        //             'buttonId': item['value'],
+        //             'type': 'button',
+        //         });
+        //     });
+        //     data.buttons = buttons;
+        //     data.headerType = 1;
+        // } else {
             type = 'list';
             items.forEach(item => {
                 buttons.push({
@@ -32,7 +32,7 @@ exports.Chat = async (req, res) => {
             data.title = "";
             data.description = '';
             data.listType = 0;
-        }
+        // }
         return {
             type,
             data

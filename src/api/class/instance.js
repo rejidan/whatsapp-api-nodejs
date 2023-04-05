@@ -286,7 +286,6 @@ class WhatsAppInstance {
             const msg = messages[0];
 
             if (msg.key.remoteJid == "status@broadcast" || !msg.key.fromMe) return false;
-            console.log(msg);
 
             await this.SendWebhook('message', {
                 message: msg,
@@ -491,8 +490,7 @@ class WhatsAppInstance {
                 sections: data.sections,
                 buttonText: data.buttonText,
                 footer: data.description,
-                title: data.title,
-                viewOnce: true
+                title: data.title
             }
         )
         return result
