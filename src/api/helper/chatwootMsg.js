@@ -1,53 +1,51 @@
 
 let BASE_URL = 'http://';
 let BASE_TOKEN = '';
-const fetch = require('node-fetch')
 const FormData = require('form-data');
 const mime = require('mime-types')
 
+const axios = require('axios');
+
 const createContact = async (req) => {
   const phone = req.key.remoteJid.replace("@s.whatsapp.net", "")
-  const response = await fetch(`${BASE_URL}/contacts`, {
-    method: "POST",
+  const response = await axios.post(`${BASE_URL}/contacts`, {
+    'identifier': phone,
+    'name': req.pushName,
+    'phone_number': "+" + phone,
+  }, {
     headers: {
       "Content-Type": "application/json",
       "api-access-token": BASE_TOKEN,
-    },
-    body: JSON.stringify({
-      'identifier': phone,
-      'name': req.pushName,
-      'phone_number': "+" + phone,
-    })
+    }
   });
-  const res = await response.json();
+  const res = response.data;
 
   return res.payload.contact;
 }
 
 const searchContact = async (contactId) => {
-  const response = await fetch(`${BASE_URL}/contacts/search?q=${contactId}&sort=phone_number`, {
-    method: "GET",
+  const response = await axios.get(`${BASE_URL}/contacts/search?q=${contactId}&sort=phone_number`, {
     headers: {
       "Content-Type": "application/json",
       "api-access-token": BASE_TOKEN,
     },
   });
-  const res = await response.json();
+  const res = response.data;
 
   return (res.meta.count > 0) ? res.payload[0] : null;
 }
 
-const getConversation = async (contactId) => {
-  const response = await fetch(`${BASE_URL}/contacts/${contactId}/conversations`, {
-    method: "GET",
+const getConversation = async (contactId, inboxId) => {
+  const response = await axios.get(`${BASE_URL}/contacts/${contactId}/conversations`, {
     headers: {
       "Content-Type": "application/json",
       "api-access-token": BASE_TOKEN,
     },
   });
-  const res = await response.json();
+  const res = response.data;
   try {
-    return res?.payload[0];
+    const conversation = res?.payload.find(item => item.inbox_id === inboxId);
+    return conversation || null;
   } catch (error) {
     return false;
   }
@@ -55,41 +53,34 @@ const getConversation = async (contactId) => {
 }
 
 const createConversation = async (contactId, inboxId) => {
-  const response = await fetch(`${BASE_URL}/conversations`, {
-    method: "POST",
+  const response = await axios.post(`${BASE_URL}/conversations`, {
+    'contact_id': contactId,
+    'inbox_id': inboxId,
+    'status': 'pending'
+  }, {
     headers: {
       "Content-Type": "application/json",
       "api-access-token": BASE_TOKEN,
-    },
-    body: JSON.stringify({
-      'contact_id': contactId,
-      'inbox_id': inboxId,
-      'status': 'pending'
-    })
+    }
   });
-  const data = await response.json();
+  const data = response.data;
 
 
   return data;
 }
 
 const sendMessage = async (text, conversationId, additional_attributes) => {
-  const response = await fetch(`${BASE_URL}/conversations/${conversationId}/messages`, {
-  // const response = await fetch('https://webhook.site/4cfb455c-1989-44bf-8822-9b143a897935', {
-    method: "POST",
+  const response = await axios.post(`${BASE_URL}/conversations/${conversationId}/messages`, {
+    'content': text,
+    'message_type': 0,
+    'private': false,
+    'additional_attributes' : additional_attributes
+  }, {
     headers: {
       "Content-Type": "application/json",
       "api-access-token": BASE_TOKEN,
-    },
-    body: JSON.stringify({
-      'content': text,
-      'message_type': 0,
-      'private': false,
-      'additional_attributes' : additional_attributes
-    })
+    }
   });
-  // const data = await response.json();
-  // return data;
 }
 
 const sendFile = async (text, conversationId, data) => {
@@ -101,19 +92,17 @@ const sendFile = async (text, conversationId, data) => {
     
     formData.append('attachments[]', Buffer.from(data.msgContent, 'base64'), { 
       contentType: Content.mimetype,
-      filename: data.message?.documentMessage ? Content.title : data.key.id + "." + mime.extension(Content.mimetype)
+      filename: data.message?.documentMessage ? Content.fileName : data.key.id + "." + mime.extension(Content.mimetype)
     });
     formData.append('message_type', 'incoming');
     formData.append('private', "false");
-    formData.append('content', Content.caption);
+    formData.append('content', Content.caption ?? '');
   
-    const response = await fetch(`${BASE_URL}/conversations/${conversationId}/messages`, {
-    // const response = await fetch(`https://webhook.site/a24eff67-b955-4291-8861-cca4845378cb`, {
-      method: "POST",
+    const response = await axios.post(`${BASE_URL}/conversations/${conversationId}/messages`, formData, {
       headers: {
         "api-access-token": BASE_TOKEN,
-      },
-      body: formData
+        "Content-Type": `multipart/form-data; boundary=${formData._boundary}`
+      }
     });
   
     return await response;
@@ -141,26 +130,27 @@ module.exports = async function chatwootMsg(url, data, myCache) {
   if (data?.update || data?.message?.update  || data.key.fromMe) return { error: null } ;
 
   const numberId = data.key.remoteJid.replace("@s.whatsapp.net", "").replace(" ","");
+  const cache_key = `${numberId}_${inboxId}`
 
 
   let contactReg, conversationReg;
-  if (!myCache.has(`contact_${numberId}`)) {
+  if (!myCache.has(`contact_${cache_key}`)) {
     const contact = await searchContact(numberId)
     contactReg = (contact) ? contact.id : (await createContact(data)).id
-    myCache.set(`contact_${numberId}`, contactReg)
-  } else contactReg = myCache.get(`contact_${numberId}`)
+    myCache.set(`contact_${cache_key}`, contactReg)
+  } else contactReg = myCache.get(`contact_${cache_key}`)
 
-  if (!myCache.has(`conversation_${numberId}`)) {
-    const conversation = await getConversation(contactReg)
+  if (!myCache.has(`conversation_${cache_key}`)) {
+    const conversation = await getConversation(contactReg, inboxId)
     conversationReg = (conversation) ? conversation.id : (await createConversation(contactReg, inboxId)).id;
-    myCache.set(`conversation_${numberId}`, conversationReg)
-  } else conversationReg = myCache.get(`conversation_${numberId}`)
+    myCache.set(`conversation_${cache_key}`, conversationReg)
+  } else conversationReg = myCache.get(`conversation_${cache_key}`)
 
-  if (data.message?.imageMessage || data.message?.videoMessage || data.message?.documentMessage || data.message?.AudioMessage ) {
+  if (data.message?.imageMessage || data.message?.videoMessage || data.message?.documentMessage || data.message?.audioMessage ) {
     sendFile(data.message.conversation, conversationReg, data)    
   } else {
     let content_attributes = { 'masuk' :'mangga'};
-    let message = data.message?.conversation || data.message?.buttonsResponseMessage?.selectedButtonId || data.message?.listResponseMessage?.singleSelectReply.selectedRowId || (data.message?.orderMessage ? 'Order Message' : 'undefined');
+    let message = data.message?.conversation || data.message?.extendedTextMessage?.text || data.message?.buttonsResponseMessage?.selectedButtonId || data.message?.listResponseMessage?.singleSelectReply.selectedRowId || (data.message?.orderMessage ? 'Order Message' : 'undefined');
     // jika ada orderan masuk
     if (message == 'Order Message') {
       let order = data.message?.orderMessage
