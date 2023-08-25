@@ -132,32 +132,37 @@ module.exports = async function chatwootMsg(url, data, myCache) {
   const numberId = data.key.remoteJid.replace("@s.whatsapp.net", "").replace(" ","");
   const cache_key = `${numberId}_${inboxId}`
 
-
-  let contactReg, conversationReg;
-  if (!myCache.has(`contact_${cache_key}`)) {
-    const contact = await searchContact(numberId)
-    contactReg = (contact) ? contact.id : (await createContact(data)).id
-    myCache.set(`contact_${cache_key}`, contactReg)
-  } else contactReg = myCache.get(`contact_${cache_key}`)
-
-  if (!myCache.has(`conversation_${cache_key}`)) {
-    const conversation = await getConversation(contactReg, inboxId)
-    conversationReg = (conversation) ? conversation.id : (await createConversation(contactReg, inboxId)).id;
-    myCache.set(`conversation_${cache_key}`, conversationReg)
-  } else conversationReg = myCache.get(`conversation_${cache_key}`)
-
-  if (data.message?.imageMessage || data.message?.videoMessage || data.message?.documentMessage || data.message?.audioMessage ) {
-    sendFile(data.message.conversation, conversationReg, data)    
-  } else {
-    let content_attributes = { 'masuk' :'mangga'};
-    let message = data.message?.conversation || data.message?.extendedTextMessage?.text || data.message?.buttonsResponseMessage?.selectedButtonId || data.message?.listResponseMessage?.singleSelectReply.selectedRowId || (data.message?.orderMessage ? 'Order Message' : 'undefined');
-    // jika ada orderan masuk
-    if (message == 'Order Message') {
-      let order = data.message?.orderMessage
-      message = `New Order: ${order.orderId} - ${order.token}`;
+  try {
+    let contactReg, conversationReg;
+    if (!myCache.has(`contact_${cache_key}`)) {
+      const contact = await searchContact(numberId)
+      contactReg = (contact) ? contact.id : (await createContact(data)).id
+      myCache.set(`contact_${cache_key}`, contactReg)
+    } else contactReg = myCache.get(`contact_${cache_key}`)
+  
+    if (!myCache.has(`conversation_${cache_key}`)) {
+      const conversation = await getConversation(contactReg, inboxId)
+      conversationReg = (conversation) ? conversation.id : (await createConversation(contactReg, inboxId)).id;
+      myCache.set(`conversation_${cache_key}`, conversationReg)
+    } else conversationReg = myCache.get(`conversation_${cache_key}`)
+  
+    if (data.message?.imageMessage || data.message?.videoMessage || data.message?.documentMessage || data.message?.audioMessage ) {
+      sendFile(data.message.conversation, conversationReg, data)    
+    } else {
+      let content_attributes = { 'masuk' :'mangga'};
+      let message = data.message?.conversation || data.message?.extendedTextMessage?.text || data.message?.buttonsResponseMessage?.selectedButtonId || data.message?.listResponseMessage?.singleSelectReply.selectedRowId || (data.message?.orderMessage ? 'Order Message' : 'undefined');
+      // jika ada orderan masuk
+      if (message == 'Order Message') {
+        let order = data.message?.orderMessage
+        message = `New Order: ${order.orderId} - ${order.token}`;
+      }
+      sendMessage(message, conversationReg, content_attributes)
     }
-    sendMessage(message, conversationReg, content_attributes)
+      
+  } catch (error) {
+    console.error(error);
   }
+
 
   return {
     'content': data.message.conversation,
